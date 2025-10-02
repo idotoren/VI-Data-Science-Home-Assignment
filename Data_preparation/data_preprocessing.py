@@ -31,13 +31,16 @@ class DataPreprocessing:
 
         return df
 
-    def _clean_data(self):
-        # Implement data cleaning logic here
-        pass
+    def _normalize_data(self, df):
+        print("\nNormalizing numerical features...")
+        for col in self.numeric_features:
+            min_val = df[col].min()
+            max_val = df[col].max()
+            if max_val > min_val:  # Avoid division by zero
+                df[col] = (df[col] - min_val) / (max_val - min_val)
+                print(f"  Normalized {col}")
+        return df
 
-    def _normalize_data(self):
-        # Implement data normalization logic here
-        pass
 
     def run(self, data):
         """
@@ -49,16 +52,13 @@ class DataPreprocessing:
         # Step 1: Handle missing values
         df = self._handle_missing_values(data)
 
-        # Step 2: remove outliers
-        df = self._remove_outliers(df)
+
+        # Step 3: Normalize numerical features
+        df = self._normalize_data(df)
 
         # # Step 4: Encode categorical features
         # X = self.encode_categorical_features(X)
 
         print(f"\n=== Data Preprocessing Complete ===")
 
-        return df
-
-
-    def _remove_outliers(self, df):
         return df
