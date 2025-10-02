@@ -11,8 +11,9 @@ from sklearn.metrics import (
     )
 
 class ModelEvaluation:
-    def __init__(self, score_column='score', label_column='churn',
+    def __init__(self, p_success_outreach, score_column='score', label_column='churn',
                  marginal_cost=1, churn_prevention_rev=10, threshold=0.5, output_dir='Outputs'):
+        self.p_success_outreach = p_success_outreach
         self.score_column = score_column
         self.label_column = label_column
         self.marginal_cost = marginal_cost
@@ -164,13 +165,12 @@ class ModelEvaluation:
         return calib[['prob_bin', 'sum_score', 'sum_label', 'count', 'calibration_ratio']]
 
 
-    def _prepare_recommendation_list(self, predictions_df, N, output_file='recommendations.csv'):
+    def _prepare_recommendation_list(self, predictions_df, threshold_for_outreach, output_file='recommendations.csv'):
         """
         Prepare a recommendation list by filtering non-churned samples, sorting by score, and saving the top N results.
 
         Args:
             predictions_df (pd.DataFrame): DataFrame with columns 'member_id', 'score', and 'churn'.
-            N (int): Number of top recommendations to include.
             output_file (str): Path to save the resulting CSV file.
 
         Returns:
@@ -184,6 +184,10 @@ class ModelEvaluation:
 
         # Add rank column
         sorted_df['rank'] = sorted_df.index + 1
+
+        # Calculate N based on the threshold
+        N = np.searchsorted(sorted_df['score'].values, threshold_for_outreach, side='right')
+        print(f"Number of recommendations to reach the threshold ({threshold_for_outreach:.4f}): {N}")
 
         # Select the top N rows
         top_n_df = sorted_df.head(N)
@@ -218,7 +222,8 @@ class ModelEvaluation:
         print(calib_df)
 
         # Step 4: Prepare recommendation list
-        recommendations = self._prepare_recommendation_list(predictions_df, N=100)
+        threshold_for_outreach = self.marginal_cost/(self.p_success_outreach * self.churn_prevention_rev)
+        recommendations = self._prepare_recommendation_list(predictions_df, threshold_for_outreach)
         print(recommendations.head())
         print(f"\n=== Model Evaluation Complete ===")
 

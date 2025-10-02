@@ -21,7 +21,7 @@ class Main:
         """
         print("Starting data collection...")
         data_collector = DataCollector(self.data_folder)
-        raw_data = data_collector.run()
+        raw_data, p_success_outreach = data_collector.run()
 
         print("Starting data preprocessing...")
         preprocessor = self.preprocessor_class()

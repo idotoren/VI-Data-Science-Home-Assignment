@@ -105,15 +105,18 @@ class DataCollector:
         """
         # Load the data
         self.churn_labels = pd.read_csv(churn_file)
-
         # Ensure timestamp is in datetime format
         self.churn_labels['signup_date'] = pd.to_datetime(self.churn_labels['signup_date'])
-
-        # Calculate time from current time to last visit
+        # Calculate time from current time to signup date
         current_time = datetime.now()
         self.churn_labels['days_from_signup'] = (current_time - self.churn_labels['signup_date']).dt.days
         # Drop the signup_date column
         self.churn_labels.drop(columns=['signup_date'], inplace=True)
+
+        # Estimate probability of successful outreach from data
+        outreach_df = self.churn_labels[self.churn_labels.outreach == 1]
+
+        return outreach_df[outreach_df.churn == 0].shape[0] / outreach_df.shape[0]
 
     def _prepare_web_visit_features(self, web_visits_file):
         """
@@ -262,7 +265,7 @@ class DataCollector:
         self._prepare_claims_features(claims_file, collapse_icd=False)
 
         print("Preparing churn label features...")
-        self._prepare_churn_label_features(churn_file)
+        p_success_outreach = self._prepare_churn_label_features(churn_file)
 
         print("Preparing web visits sequence embeddings features...")
         self._prepare_web_visit_sequence_embeddings(web_data)
@@ -285,4 +288,4 @@ class DataCollector:
         print("Preview of the dataset:")
         print(final_dataset.head())
 
-        return final_dataset
+        return final_dataset, p_success_outreach
