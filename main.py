@@ -1,6 +1,6 @@
 
 class Main:
-    def __init__(self, data_folder, preprocessor_class, trainer_class, evaluator_class):
+    def __init__(self, data_folder, preprocessor_class, trainer_class, evaluator_class, model_type):
         """
         Initializes the main pipeline with the required components.
 
@@ -14,6 +14,7 @@ class Main:
         self.preprocessor_class = preprocessor_class
         self.trainer_class = trainer_class
         self.evaluator_class = evaluator_class
+        self.model_type = model_type
 
     def run(self):
         """
@@ -29,10 +30,10 @@ class Main:
 
         print("Starting model training...")
         trainer = self.trainer_class()
-        predictions_df = trainer.train(processed_data, model_type='LGBM')
+        predictions_df = trainer.train(processed_data, model_type=self.model_type)
 
         print("Starting results preparation...")
-        evaluator = self.evaluator_class()
+        evaluator = self.evaluator_class(p_success_outreach)
         evaluation_results = evaluator.run(predictions_df)
 
         print("Pipeline completed.")
@@ -47,11 +48,13 @@ if __name__ == "__main__":
     from Evaluate_model.evaluate_model import ModelEvaluation
 
     data_folder = "Data"
+    model_type = 'LR'  # Choose from 'LR', 'RF', 'LGBM'
     main_pipeline = Main(
         data_folder=data_folder,
         preprocessor_class=DataPreprocessing,
         trainer_class=ModelTraining,
         evaluator_class=ModelEvaluation,
+        model_type=model_type
     )
     results = main_pipeline.run()
     print("Evaluation Results:", results)

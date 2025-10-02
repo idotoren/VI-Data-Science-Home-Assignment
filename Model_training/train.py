@@ -51,9 +51,7 @@ class ModelTraining:
 
         else:  # Logistic Regression
             param_grid = {
-                'C': [0.01, 0.1, 1, 10],
-                'penalty': ['l2'],
-                'solver': ['lbfgs']
+                'C': [0.01, 0.05, 0.1, 1, 10]
             }
             base_model = LogisticRegression(random_state=42, max_iter=5000)
 
