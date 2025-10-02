@@ -10,7 +10,7 @@ from sklearn.metrics import (
 
 class ModelEvaluation:
     def __init__(self, p_success_outreach, score_column='score', label_column='churn',
-                 marginal_cost=1, churn_prevention_rev=10, threshold=0.5, output_dir='Outputs'):
+                 marginal_cost=0.5, churn_prevention_rev=10, threshold=0.5, output_dir='Outputs'):
         self.p_success_outreach = p_success_outreach
         self.score_column = score_column
         self.label_column = label_column
