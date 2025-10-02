@@ -126,7 +126,7 @@ class ModelTraining:
     #     return self.best_model
 
 
-    def _stratified_kfold_training(self, data, model_type='LR', n_splits=10, random_state=42):
+    def _stratified_kfold_training(self, data, model_type, n_splits=10, random_state=42):
         """
         Perform stratified K-Fold cross-validation using Logistic Regression or Random Forest, train the model, and create a prediction dataset.
 
@@ -192,7 +192,7 @@ class ModelTraining:
 
         return prediction_df
 
-    def train(self, data, model_type='RF'):
+    def train(self, data, model_type='LR'):
         """
         Complete model training pipeline
         Args:

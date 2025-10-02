@@ -1,18 +1,16 @@
 
 class Main:
-    def __init__(self, data_folder, model_class, preprocessor_class, trainer_class, evaluator_class):
+    def __init__(self, data_folder, preprocessor_class, trainer_class, evaluator_class):
         """
         Initializes the main pipeline with the required components.
 
         Args:
             data_folder (str): Path to the folder containing the data files.
-            model_class (class): The class responsible for model creation.
             preprocessor_class (class): The class responsible for data preprocessing.
             trainer_class (class): The class responsible for model training.
             evaluator_class (class): The class responsible for model evaluation.
         """
         self.data_folder = data_folder
-        self.model_class = model_class
         self.preprocessor_class = preprocessor_class
         self.trainer_class = trainer_class
         self.evaluator_class = evaluator_class
@@ -31,11 +29,11 @@ class Main:
 
         print("Starting model training...")
         trainer = self.trainer_class()
-        trained_model = trainer.run(processed_data)
+        predictions_df = trainer.train(processed_data)
 
         print("Starting results preparation...")
-        evaluator = self.evaluator_class(trained_model)
-        evaluation_results = evaluator.run(processed_data)
+        evaluator = self.evaluator_class()
+        evaluation_results = evaluator.run(predictions_df)
 
         print("Pipeline completed.")
         return evaluation_results
@@ -48,7 +46,7 @@ if __name__ == "__main__":
     from Model_training.train import ModelTraining
     from Evaluate_model.evaluate_model import ModelEvaluation
 
-    data_folder = "../Data"
+    data_folder = "Data"
     main_pipeline = Main(
         data_folder=data_folder,
         preprocessor_class=DataPreprocessing,

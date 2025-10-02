@@ -182,7 +182,7 @@ class DataCollector:
     def _prepare_cross_dataset_features(self, final_dataset):
         pass
 
-    def run(self, data_folder):
+    def run(self):
         """
         Executes all feature preparation functions, merges the results, validates uniqueness, and prints a summary.
 
@@ -193,10 +193,10 @@ class DataCollector:
             pd.DataFrame: Final merged dataset with all features.
         """
         # File paths
-        app_usage_file = os.path.join(data_folder, 'app_usage.csv')
-        web_visits_file = os.path.join(data_folder, 'web_visits.csv')
-        claims_file = os.path.join(data_folder, 'claims.csv')
-        churn_file = os.path.join(data_folder, 'churn_labels.csv')
+        app_usage_file = os.path.join(self.data_folder, 'app_usage.csv')
+        web_visits_file = os.path.join(self.data_folder, 'web_visits.csv')
+        claims_file = os.path.join(self.data_folder, 'claims.csv')
+        churn_file = os.path.join(self.data_folder, 'churn_labels.csv')
 
         # Prepare features
         print("Preparing app usage features...")
@@ -235,7 +235,7 @@ class DataCollector:
 
 
 
-# Example usage
-data_folder = '../Data'  # Adjust the path to your data folder
-data_collector = DataCollector(data_folder)
-final_dataset = data_collector.run(data_folder)
+# # Example usage
+# data_folder = '../Data'  # Adjust the path to your data folder
+# data_collector = DataCollector(data_folder)
+# final_dataset = data_collector.run(data_folder)
