@@ -29,7 +29,7 @@ class Main:
 
         print("Starting model training...")
         trainer = self.trainer_class()
-        predictions_df = trainer.train(processed_data)
+        predictions_df = trainer.train(processed_data, model_type='LR')
 
         print("Starting results preparation...")
         evaluator = self.evaluator_class()

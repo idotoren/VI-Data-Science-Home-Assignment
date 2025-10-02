@@ -61,6 +61,31 @@ class DataCollector:
         last_visit_time = grouped['timestamp'].max().reset_index()
         last_visit_time['time_from_last_visit'] = (current_time - last_visit_time['timestamp']).dt.total_seconds() / 3600
 
+        # Calculate the number of visits in the last week, month, and year
+        self.app_usage_features['visits_current_week'] = grouped['timestamp'].apply(
+            lambda x: (current_time - x).dt.days.le(7).sum()
+        )
+        self.app_usage_features['visits_previous_week'] = grouped['timestamp'].apply(
+            lambda x: ((current_time - x).dt.days.gt(7) & (current_time - x).dt.days.le(14)).sum()
+        )
+        self.app_usage_features['visits_last_month'] = grouped['timestamp'].apply(
+            lambda x: (current_time - x).dt.days.le(30).sum()
+        )
+        self.app_usage_features['visits_last_six_month'] = grouped['timestamp'].apply(
+            lambda x: (current_time - x).dt.days.le(180).sum()
+        )
+
+        # Calculate the difference between last week and last month
+        self.app_usage_features['change_week_month'] = (
+            self.app_usage_features['visits_last_week'] - self.app_usage_features['visits_last_month']
+        )
+        self.app_usage_features['change_week_previous_week'] = (
+                self.app_usage_features['visits_last_week'] - self.app_usage_features['visits_previous_week']
+        )
+        self.app_usage_features['change_month_six_month'] = (
+                self.app_usage_features['visits_last_month'] - self.app_usage_features['visits_last_six_month']
+        )
+
         # Merge features
         self.app_usage_features = self.app_usage_features.merge(time_diff_features, on='member_id')
         self.app_usage_features = self.app_usage_features.merge(last_visit_time[['member_id', 'time_from_last_visit']], on='member_id')
@@ -239,3 +264,77 @@ class DataCollector:
 # data_folder = '../Data'  # Adjust the path to your data folder
 # data_collector = DataCollector(data_folder)
 # final_dataset = data_collector.run(data_folder)
+
+# import pandas as pd
+# import numpy as np
+# from gensim.models import Word2Vec
+# from sklearn.preprocessing import StandardScaler
+#
+#
+# def learn_behavior_embeddings(df_web, df_app,
+#                               url_col='url',
+#                               session_col='session_id',
+#                               user_col='user_id',
+#                               time_col='timestamp',
+#                               embed_size=32,
+#                               min_count=2,
+#                               window=5):
+#     """
+#     Learn and summarize behavior embeddings from web and app sequences for each user.
+#
+#     Parameters:
+#         df_web (DataFrame): Web events with columns [user_id, timestamp, url]
+#         df_app (DataFrame): App sessions with columns [user_id, timestamp, session_id]
+#         embed_size (int): Size of embedding vectors
+#         min_count (int): Min frequency for Word2Vec vocabulary
+#         window (int): Word2Vec context window
+#
+#     Returns:
+#         user_features_df (DataFrame): One row per user with embedding-based features
+#     """
+#
+#     # Step 1: Sort and group by user for both sources
+#     def prepare_sequences(df, token_col):
+#         df_sorted = df.sort_values(by=[user_col, time_col])
+#         user_sequences = df_sorted.groupby(user_col)[token_col].apply(list)
+#         return user_sequences
+#
+#     web_sequences = prepare_sequences(df_web, url_col)
+#     app_sequences = prepare_sequences(df_app, session_col)
+#
+#     # Step 2: Train Word2Vec models on all sequences
+#     web_model = Word2Vec(sentences=web_sequences, vector_size=embed_size,
+#                          window=window, min_count=min_count, workers=4, sg=1)
+#
+#     app_model = Word2Vec(sentences=app_sequences, vector_size=embed_size,
+#                          window=window, min_count=min_count, workers=4, sg=1)
+#
+#     # Step 3: Summarize embeddings per user
+#     def summarize_user_embeddings(sequences, model, prefix):
+#         user_vectors = {}
+#         for user_id, tokens in sequences.items():
+#             vectors = [model.wv[token] for token in tokens if token in model.wv]
+#             if len(vectors) == 0:
+#                 vec = np.zeros(embed_size)
+#             else:
+#                 vec = np.mean(vectors, axis=0)
+#             user_vectors[user_id] = vec
+#         user_df = pd.DataFrame.from_dict(user_vectors, orient='index')
+#         user_df.columns = [f"{prefix}_embed_{i}" for i in range(embed_size)]
+#         user_df.index.name = user_col
+#         return user_df
+#
+#     web_features = summarize_user_embeddings(web_sequences, web_model, 'web')
+#     app_features = summarize_user_embeddings(app_sequences, app_model, 'app')
+#
+#     # Step 4: Merge features
+#     user_features_df = web_features.join(app_features, how='outer').fillna(0)
+#
+#     # Optional: scale features
+#     user_features_df = pd.DataFrame(
+#         StandardScaler().fit_transform(user_features_df),
+#         columns=user_features_df.columns,
+#         index=user_features_df.index
+#     )
+#
+#     return user_features_df.reset_index()

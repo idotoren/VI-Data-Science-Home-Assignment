@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
@@ -10,12 +12,14 @@ from sklearn.metrics import (
 
 class ModelEvaluation:
     def __init__(self, score_column='score', label_column='churn',
-                 marginal_cost=1, churn_prevention_rev=10, threshold=0.5):
+                 marginal_cost=1, churn_prevention_rev=10, threshold=0.5, output_dir='Outputs'):
         self.score_column = score_column
         self.label_column = label_column
         self.marginal_cost = marginal_cost
         self.churn_prevention_rev = churn_prevention_rev
         self.threshold = threshold
+        self.output_dir = output_dir
+
 
     def _evaluate_model(self, predictions_df):
         """Comprehensive model evaluation"""
@@ -43,7 +47,6 @@ class ModelEvaluation:
             'roc_auc': roc_auc,
             'pr_auc': pr_auc
         }
-
 
         # Print metrics
         print("Performance Metrics:")
@@ -80,7 +83,7 @@ class ModelEvaluation:
         plt.legend(loc='lower right')
         plt.grid(True, linestyle='--', alpha=0.5)
         plt.tight_layout()
-        plt.savefig(output_file)
+        plt.savefig(os.path.join(self.output_dir, output_file))
         print(f"ROC curve saved to {output_file}")
 
     def _plot_qq_calibration(self, df, bins=100, figsize=(8, 6)):
@@ -129,7 +132,7 @@ class ModelEvaluation:
         plt.grid(True, linestyle='--', alpha=0.5)
         plt.legend()
         plt.tight_layout()
-        plt.savefig('qq_plot.png')
+        plt.savefig(os.path.join(self.output_dir, 'qq_plot.png'))
         plt.show()
 
 
@@ -186,7 +189,7 @@ class ModelEvaluation:
         top_n_df = sorted_df.head(N)
 
         # Save to CSV
-        top_n_df[['member_id', 'score', 'rank']].to_csv(output_file, index=False)
+        top_n_df[['member_id', 'score', 'rank']].to_csv(os.path.join(self.output_dir,output_file), index=False)
 
         return top_n_df[['member_id', 'score', 'rank']]
 
