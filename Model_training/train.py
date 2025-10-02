@@ -1,13 +1,6 @@
-"""
-Model Training Module for Churn Prediction System
-Handles model selection, training, and hyperparameter tuning
-"""
-
-from sklearn.model_selection import train_test_split, GridSearchCV, cross_val_score, StratifiedKFold
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.model_selection import GridSearchCV, StratifiedKFold
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score, roc_curve
-import joblib
 import numpy as np
 import warnings
 import pandas as pd
@@ -18,7 +11,7 @@ warnings.filterwarnings('ignore')
 
 class ModelTraining:
     """
-    Handles model training, hyperparameter tuning, and model selection
+    Handles model training, hyperparameter tuning, and prediction
     """
 
     def __init__(self, target_column='churn', member_id_column='member_id',
@@ -37,7 +30,7 @@ class ModelTraining:
 
 
     def _tune_hyperparameters(self, x_train, y_train, model_name='LR'):
-        """Tune hyperparameters using GridSearchCV"""
+        """Tune hyperparameters using GridSearchCV with inner cross-validation."""
         print(f"\n=== Tuning Hyperparameters for {model_name} ===\n")
 
         if model_name == 'RF':
@@ -83,30 +76,13 @@ class ModelTraining:
         return grid_search.best_params_
 
 
-    # def save_model(self, filepath):
-    #     """Save the trained model to disk"""
-    #     if self.best_model is None:
-    #         raise ValueError("No model trained yet. Call train_model first.")
-    #
-    #     joblib.dump(self.best_model, filepath)
-    #     print(f"\nModel saved to {filepath}")
-    #
-    # def load_model(self, filepath):
-    #     """Load a trained model from disk"""
-    #     self.best_model = joblib.load(filepath)
-    #     print(f"\nModel loaded from {filepath}")
-    #     return self.best_model
-
-
     def _stratified_kfold_training(self, data, model_type, n_splits=10, random_state=42):
         """
-        Perform stratified K-Fold cross-validation using Logistic Regression or Random Forest, train the model, and create a prediction dataset.
+        Perform stratified K-Fold cross-validation using required model, train the model, and create a prediction dataset.
 
         Args:
             data (pd.DataFrame): Input dataset with features, target, and member_id.
-            target_column (str): Name of the target column.
-            member_id_column (str): Name of the member_id column.
-            model_type (str): Model type to use ('LR' for Logistic Regression, 'RF' for Random Forest).
+            model_type (str): Model type to use ('LR' for Logistic Regression, 'RF' for Random Forest, 'LGBM' for gradient boosting).
             n_splits (int): Number of folds for cross-validation.
             random_state (int): Random state for reproducibility.
 
@@ -135,10 +111,8 @@ class ModelTraining:
             x_train, x_val = x.iloc[train_idx], x.iloc[val_idx]
             y_train, y_val = y.iloc[train_idx], y.iloc[val_idx]
 
-            # Initialize the model based on the model_type flag
-            try:
-                model = self.models[model_type]
-            except KeyError:
+            # validate supported model based on the model_type flag
+            if model_type not in self.models.keys():
                 raise ValueError("Invalid model_type. Choose 'LR' for Logistic Regression, 'LGBM' for lightGBM boosting or 'RF' for Random Forest.")
 
             # Tune hyperparameters and train
@@ -169,9 +143,7 @@ class ModelTraining:
         Complete model training pipeline
         Args:
             data (pd.DataFrame): Input dataset with features, target, and member_id.
-            target_column (str): Name of the target column.
-            member_id_column (str): Name of the member_id column.
-            model_type (str): Model type to use ('LR' for Logistic Regression, 'RF' for Random Forest).
+            model_type (str): Model type to use ('LR' for Logistic Regression, 'RF' for Random Forest, 'LGBM' for gradient boosting).
         Returns:
             pd.DataFrame: Prediction dataset with member_id, score, rank, and target.
         """

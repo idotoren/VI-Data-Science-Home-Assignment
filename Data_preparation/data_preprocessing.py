@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 
 class DataPreprocessing:
     def __init__(self, target_column='churn'):
@@ -22,7 +21,6 @@ class DataPreprocessing:
             if df[col].isnull().sum() > 0:
                 # median_val = df[col].median()
                 df[col].fillna(0, inplace=True)
-                # print(f"  Filled {col} with median: {median_val}")
 
         # For categorical features: fill with 'other'
         for col in self.categorical_features:
@@ -45,8 +43,7 @@ class DataPreprocessing:
 
     def run(self, data):
         """
-        Complete data preparation pipeline
-        Returns: X (features) and y (target)
+        Complete data preprocessing pipeline
         """
         print("\n=== Starting Data Preprocessing Pipeline ===\n")
 

@@ -1,12 +1,10 @@
 import os
-
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 from sklearn.metrics import (
-        classification_report, confusion_matrix,
         roc_auc_score, roc_curve, precision_recall_curve,
-        log_loss, precision_score, recall_score, f1_score,
+        log_loss, f1_score,
         average_precision_score, accuracy_score
     )
 
@@ -33,8 +31,6 @@ class ModelEvaluation:
         # Calculate metrics
         accuracy = accuracy_score(y_true, y_pred)
         logloss = log_loss(y_true, y_pred_proba)
-        # precision = precision_score(y_true, y_pred, average='binary', zero_division=0)
-        # recall = recall_score(y_true, y_pred, average='binary', zero_division=0)
         f1 = f1_score(y_true, y_pred, average='binary', zero_division=0)
         roc_auc = roc_auc_score(y_true, y_pred_proba)
         pr_auc = average_precision_score(y_true, y_pred_proba)
@@ -53,8 +49,6 @@ class ModelEvaluation:
         print("Performance Metrics:")
         print(f"  Accuracy:  {accuracy:.4f}")
         print(f"  log_loss:  {logloss:.4f}")
-        # print(f"  Precision: {precision:.4f}")
-        # print(f"  Recall:    {recall:.4f}")
         print(f"  F1-Score:  {f1:.4f}")
         print(f"  ROC-AUC:   {metrics['roc_auc']:.4f}")
         print(f"  PR-AUC:   {metrics['pr_auc']:.4f}")
@@ -64,11 +58,6 @@ class ModelEvaluation:
     def _plot_roc_curve(self, predictions_df, output_file='roc_curve.png'):
         """
         Plots the ROC curve and saves it to a PNG file.
-
-        Args:
-            y_true (array-like): True binary labels.
-            y_pred_proba (array-like): Predicted probabilities for the positive class.
-            output_file (str): Path to save the ROC curve PNG file.
         """
         y_true = predictions_df[self.label_column]
         y_pred_proba = predictions_df[self.score_column]
@@ -87,6 +76,26 @@ class ModelEvaluation:
         plt.savefig(os.path.join(self.output_dir, output_file))
         print(f"ROC curve saved to {output_file}")
 
+    def _plot_pr_auc_curve(self, predictions_df, output_file='pr_auc_curve.png'):
+        """
+        Plots the Precision-Recall (PR) curve and saves it to a PNG file.
+        """
+        y_true = predictions_df[self.label_column]
+        y_pred_proba = predictions_df[self.score_column]
+        precision, recall, _ = precision_recall_curve(y_true, y_pred_proba)
+        pr_auc = average_precision_score(y_true, y_pred_proba)
+
+        plt.figure(figsize=(8, 6))
+        plt.plot(recall, precision, color='blue', label=f'PR Curve (AUC = {pr_auc:.4f})')
+        plt.xlabel('Recall')
+        plt.ylabel('Precision')
+        plt.title('Precision-Recall (PR) Curve')
+        plt.legend(loc='lower left')
+        plt.grid(True, linestyle='--', alpha=0.5)
+        plt.tight_layout()
+        plt.savefig(os.path.join(self.output_dir, output_file))
+        print(f"PR AUC curve saved to {output_file}")
+
     def _plot_qq_calibration(self, df, bins=100, figsize=(8, 6)):
         """
         Plots a Q-Q plot comparing estimated probabilities vs actual labels.
@@ -94,8 +103,6 @@ class ModelEvaluation:
 
         Parameters:
             df (pd.DataFrame): DataFrame with estimated probabilities and actual labels.
-            score_col (str): Column name for estimated probabilities.
-            label_col (str): Column name for actual labels (0/1).
             bins (int): Number of quantile bins (default: 100).
             figsize (tuple): Size of the plot.
         """
@@ -171,6 +178,7 @@ class ModelEvaluation:
 
         Args:
             predictions_df (pd.DataFrame): DataFrame with columns 'member_id', 'score', and 'churn'.
+            threshold_for_outreach (float): Score threshold to determine N recommendations.
             output_file (str): Path to save the resulting CSV file.
 
         Returns:
@@ -215,6 +223,7 @@ class ModelEvaluation:
         # Step 2: Plot Q-Q calibration and auc curve
         self._plot_qq_calibration(predictions_df, bins=100)
         self._plot_roc_curve(predictions_df)
+        self._plot_pr_auc_curve(predictions_df)
 
         # Step 3: Compute calibration by probability bin
         calib_df = self._compute_calibration_by_probability_bin(predictions_df, bins=10)

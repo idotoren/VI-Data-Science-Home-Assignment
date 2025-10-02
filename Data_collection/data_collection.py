@@ -10,11 +10,8 @@ class DataCollector:
         """
         Initializes the DataCollector with the path to the data folder.
 
-        Args:
-            data_folder (str): Path to the folder containing all input CSV files.
         """
         self.data_folder = data_folder
-
 
     def _prepare_app_usage_features(self, app_usage_file):
         """
@@ -92,7 +89,6 @@ class DataCollector:
         self.app_usage_features = self.app_usage_features.merge(time_diff_features, on='member_id')
         self.app_usage_features = self.app_usage_features.merge(last_visit_time[['member_id', 'time_from_last_visit']], on='member_id')
 
-
     def _prepare_churn_label_features(self, churn_file):
         """
         Prepares churn labels from the churn.csv file.
@@ -105,11 +101,14 @@ class DataCollector:
         """
         # Load the data
         self.churn_labels = pd.read_csv(churn_file)
+
         # Ensure timestamp is in datetime format
         self.churn_labels['signup_date'] = pd.to_datetime(self.churn_labels['signup_date'])
-        # Calculate time from current time to signup date
+
+        # Calculate days from current time to signup date
         current_time = datetime.now()
         self.churn_labels['days_from_signup'] = (current_time - self.churn_labels['signup_date']).dt.days
+
         # Drop the signup_date column
         self.churn_labels.drop(columns=['signup_date'], inplace=True)
 
@@ -213,6 +212,18 @@ class DataCollector:
 
     def _prepare_web_visit_sequence_embeddings(self, df_web, embed_size=32, min_count=2, window=5):
 
+        """
+        Learn vector representation of web visits sequence by web title.
+
+        Args:
+            df_web (str): web_visits dataframe
+            embed_size (int): length of vector representation
+            min_count (int): minimum frequency of word to be included in the model
+            window (int): context window size for Word2Vec
+
+        Returns:
+            pd.DataFrame: DataFrame with features for each unique member_id.
+        """
         # Step 1: Sort and group by user
         df_sorted = df_web.sort_values(by=['member_id', 'timestamp'])
         web_sequences = df_sorted.groupby('member_id')['title'].apply(list)
@@ -237,13 +248,9 @@ class DataCollector:
         # Step 4: Merge features
         self.user_web_emb_features = web_features.fillna(0)
 
-
     def run(self):
         """
         Executes all feature preparation functions, merges the results, validates uniqueness, and prints a summary.
-
-        Args:
-            data_folder (str): Path to the folder containing all input CSV files.
 
         Returns:
             pd.DataFrame: Final merged dataset with all features.
