@@ -29,14 +29,11 @@ class Main:
         preprocessor = self.preprocessor_class()
         processed_data = preprocessor.run(raw_data)
 
-        print("Initializing the model...")
-        model = self.model_class()
-
         print("Starting model training...")
-        trainer = self.trainer_class(model)
+        trainer = self.trainer_class()
         trained_model = trainer.run(processed_data)
 
-        print("Starting model evaluation...")
+        print("Starting results prepartion...")
         evaluator = self.evaluator_class(trained_model)
         evaluation_results = evaluator.run(processed_data)
 
@@ -47,17 +44,16 @@ class Main:
 # Example usage
 if __name__ == "__main__":
     from Data_collection.data_collection import DataCollector
-    from preprocessing import Preprocessor
-    from training import Trainer
+    from Data_preparation.data_preprocessing import DataPreprocessing
+    from Model_training.train import ModelTraining
     from evaluation import Evaluator
-    from model import Model
 
     data_folder = "../Data"
     main_pipeline = Main(
         data_folder=data_folder,
         model_class=Model,
-        preprocessor_class=Preprocessor,
-        trainer_class=Trainer,
+        preprocessor_class=DataPreprocessing,
+        trainer_class=ModelTraining,
         evaluator_class=Evaluator,
     )
     results = main_pipeline.run()

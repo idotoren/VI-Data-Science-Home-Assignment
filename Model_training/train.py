@@ -22,7 +22,7 @@ class ModelTraining:
     """
 
     def __init__(self, target_column='churn', member_id_column='member_id',
-                 eval_mode=True):
+                 eval_mode=False):
         self.target_column = target_column
         self.member_id_column = member_id_column
         self.eval_mode = eval_mode
