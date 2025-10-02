@@ -72,7 +72,6 @@ class ModelTraining:
             param_grid = {
                 'n_estimators': [50, 100, 200],
                 'max_depth': [10, 20, None],
-                'min_samples_split': [2, 5],
                 'min_samples_leaf': [1, 2]
             }
             base_model = RandomForestClassifier(random_state=42, n_jobs=-1)

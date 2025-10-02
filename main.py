@@ -46,15 +46,14 @@ if __name__ == "__main__":
     from Data_collection.data_collection import DataCollector
     from Data_preparation.data_preprocessing import DataPreprocessing
     from Model_training.train import ModelTraining
-    from evaluation import Evaluator
+    from Evaluate_model.evaluate_model import ModelEvaluation
 
     data_folder = "../Data"
     main_pipeline = Main(
         data_folder=data_folder,
-        model_class=Model,
         preprocessor_class=DataPreprocessing,
         trainer_class=ModelTraining,
-        evaluator_class=Evaluator,
+        evaluator_class=ModelEvaluation,
     )
     results = main_pipeline.run()
     print("Evaluation Results:", results)

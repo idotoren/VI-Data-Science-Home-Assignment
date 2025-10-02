@@ -9,7 +9,10 @@ from sklearn.metrics import (
     )
 
 class ModelEvaluation:
-    def __init__(self, marginal_cost=1, churn_prevention_rev=10, threshold=0.5):
+    def __init__(self, score_column='score', label_column='churn',
+                 marginal_cost=1, churn_prevention_rev=10, threshold=0.5):
+        self.score_column = score_column
+        self.label_column = label_column
         self.marginal_cost = marginal_cost
         self.churn_prevention_rev = churn_prevention_rev
         self.threshold = threshold
@@ -54,7 +57,33 @@ class ModelEvaluation:
 
         return metrics
 
-    def _plot_qq_calibration(self, df, score_col='score', label_col='churn', bins=100, figsize=(8, 6)):
+    def _plot_roc_curve(self, predictions_df, output_file='roc_curve.png'):
+        """
+        Plots the ROC curve and saves it to a PNG file.
+
+        Args:
+            y_true (array-like): True binary labels.
+            y_pred_proba (array-like): Predicted probabilities for the positive class.
+            output_file (str): Path to save the ROC curve PNG file.
+        """
+        y_true = predictions_df[self.label_column]
+        y_pred_proba = predictions_df[self.score_column]
+        fpr, tpr, _ = roc_curve(y_true, y_pred_proba)
+        roc_auc = roc_auc_score(y_true, y_pred_proba)
+
+        plt.figure(figsize=(8, 6))
+        plt.plot(fpr, tpr, color='blue', label=f'ROC Curve (AUC = {roc_auc:.4f})')
+        plt.plot([0, 1], [0, 1], color='red', linestyle='--', label='Random Guess')
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        plt.title('Receiver Operating Characteristic (ROC) Curve')
+        plt.legend(loc='lower right')
+        plt.grid(True, linestyle='--', alpha=0.5)
+        plt.tight_layout()
+        plt.savefig(output_file)
+        print(f"ROC curve saved to {output_file}")
+
+    def _plot_qq_calibration(self, df, bins=100, figsize=(8, 6)):
         """
         Plots a Q-Q plot comparing estimated probabilities vs actual labels.
         Points are binned based on score, and point size is based on density.
@@ -70,12 +99,12 @@ class ModelEvaluation:
 
         # Create equal-width bins between 0 and 1
         bin_edges = np.linspace(0, 1, bins + 1)
-        df['prob_bin'] = pd.cut(df[score_col], bins=bin_edges, include_lowest=True, right=False)
+        df['prob_bin'] = pd.cut(df[self.score_column], bins=bin_edges, include_lowest=True, right=False)
 
         # Aggregate by bins
         bin_stats = df.groupby('prob_bin').agg(
-            mean_score=(score_col, 'mean'),
-            mean_label=(label_col, 'mean'),
+            mean_score=(self.score_column, 'mean'),
+            mean_label=(self.label_column, 'mean'),
             count=('prob_bin', 'count')
         ).reset_index()
 
@@ -100,21 +129,22 @@ class ModelEvaluation:
         plt.grid(True, linestyle='--', alpha=0.5)
         plt.legend()
         plt.tight_layout()
+        plt.savefig('qq_plot.png')
         plt.show()
 
 
-    def _compute_calibration_by_probability_bin(self, df, score_col='score', label_col='churn', bins=10):
+    def _compute_calibration_by_probability_bin(self, df, bins=10):
         df = df.copy()
 
         # Create equal-width bins between 0 and 1
         bin_edges = np.linspace(0, 1, bins + 1)
-        df['prob_bin'] = pd.cut(df[score_col], bins=bin_edges, include_lowest=True, right=False)
+        df['prob_bin'] = pd.cut(df[self.score_column], bins=bin_edges, include_lowest=True, right=False)
 
         # Group by bin and compute calibration stats
         calib = df.groupby('prob_bin').agg(
-            sum_score=(score_col, 'sum'),
-            sum_label=(label_col, 'sum'),
-            count=(label_col, 'count')
+            sum_score=(self.score_column, 'sum'),
+            sum_label=(self.label_column, 'sum'),
+            count=(self.label_column, 'count')
         ).reset_index()
 
         # Avoid division by zero
@@ -122,8 +152,8 @@ class ModelEvaluation:
         calib['calibration_ratio'] = calib['calibration_ratio'].fillna(np.nan)
 
         # Compute overall average calibration
-        total_score = df[score_col].sum()
-        total_label = df[label_col].sum()
+        total_score = df[self.score_column].sum()
+        total_label = df[self.label_column].sum()
         overall_calibration = total_score / total_label if total_label > 0 else np.nan
 
         print(f'Average Calibration Ratio (Overall): {overall_calibration:.4f}')
@@ -175,11 +205,12 @@ class ModelEvaluation:
         # Step 1: Evaluate model performance
         metrics = self._evaluate_model(predictions_df)
 
-        # Step 2: Plot Q-Q calibration
-        self._plot_qq_calibration(predictions_df, score_col='score', label_col='churn', bins=100)
+        # Step 2: Plot Q-Q calibration and auc curve
+        self._plot_qq_calibration(predictions_df, bins=100)
+        self._plot_roc_curve(predictions_df)
 
         # Step 3: Compute calibration by probability bin
-        calib_df = self._compute_calibration_by_probability_bin(predictions_df, score_col='score', label_col='churn', bins=10)
+        calib_df = self._compute_calibration_by_probability_bin(predictions_df, bins=10)
         print("\nCalibration by Probability Bin:")
         print(calib_df)
 
