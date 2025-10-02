@@ -33,7 +33,7 @@ class Main:
         trainer = self.trainer_class()
         trained_model = trainer.run(processed_data)
 
-        print("Starting results prepartion...")
+        print("Starting results preparation...")
         evaluator = self.evaluator_class(trained_model)
         evaluation_results = evaluator.run(processed_data)
 
