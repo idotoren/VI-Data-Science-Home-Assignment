@@ -11,6 +11,7 @@ class DataPreprocessing:
 
         # Identify numeric and categorical columns
         self.numeric_features = df.select_dtypes(include=[np.number]).columns.tolist()
+        self.numeric_features.remove('member_id')
         if self.target_column in self.numeric_features:
             self.numeric_features.remove(self.target_column)
 
@@ -52,12 +53,8 @@ class DataPreprocessing:
         # Step 1: Handle missing values
         df = self._handle_missing_values(data)
 
-
-        # Step 3: Normalize numerical features
+        # Step 2: Normalize numerical features
         df = self._normalize_data(df)
-
-        # # Step 4: Encode categorical features
-        # X = self.encode_categorical_features(X)
 
         print(f"\n=== Data Preprocessing Complete ===")
 

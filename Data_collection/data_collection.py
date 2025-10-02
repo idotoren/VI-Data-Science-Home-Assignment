@@ -16,7 +16,7 @@ class DataCollector:
         self.data_folder = data_folder
 
 
-    def _prepare_app_usgae_features(self, app_usage_file):
+    def _prepare_app_usage_features(self, app_usage_file):
         """
         Prepares features from the app_usage.csv file.
 
@@ -253,13 +253,13 @@ class DataCollector:
 
         # Prepare features
         print("Preparing app usage features...")
-        self._prepare_app_usgae_features(app_usage_file)
+        self._prepare_app_usage_features(app_usage_file)
 
         print("Preparing web visit features...")
         web_data = self._prepare_web_visit_features(web_visits_file)
 
         print("Preparing claims features...")
-        self._prepare_claims_features(claims_file)
+        self._prepare_claims_features(claims_file, collapse_icd=False)
 
         print("Preparing churn label features...")
         self._prepare_churn_label_features(churn_file)
@@ -286,11 +286,3 @@ class DataCollector:
         print(final_dataset.head())
 
         return final_dataset
-
-
-
-
-# # Example usage
-# data_folder = '../Data'  # Adjust the path to your data folder
-# data_collector = DataCollector(data_folder)
-# final_dataset = data_collector.run(data_folder)

@@ -218,7 +218,7 @@ class ModelEvaluation:
         print(calib_df)
 
         # Step 4: Prepare recommendation list
-        recommendations = self._prepare_recommendation_list(predictions_df, N=100, output_file='top_100_recommendations.csv')
+        recommendations = self._prepare_recommendation_list(predictions_df, N=100)
         print(recommendations.head())
         print(f"\n=== Model Evaluation Complete ===")
 

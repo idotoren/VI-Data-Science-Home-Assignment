@@ -35,34 +35,6 @@ class ModelTraining:
                                        learning_rate=0.1, max_depth=-1)
         }
 
-    def _compare_models_and_select(self, n_splits=5):
-            """Compare different models using stratified cross-validation"""
-
-            print("\n=== Comparing Models ===\n")
-
-            results = {}
-            skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
-
-            for name, model in self.models.items():
-                print(f"Training {name}...")
-                scores = []
-                for train_idx, val_idx in skf.split(X_train, y_train):
-                    X_fold_train, X_fold_val = X_train.iloc[train_idx], X_train.iloc[val_idx]
-                    y_fold_train, y_fold_val = y_train.iloc[train_idx], y_train.iloc[val_idx]
-                    model.fit(X_fold_train, y_fold_train)
-                    fold_score = roc_auc_score(y_fold_val, model.predict_proba(X_fold_val)[:, 1])
-                    scores.append(fold_score)
-                results[name] = {
-                    'mean_score': np.mean(scores),
-                    'std_score': np.std(scores)
-                }
-                print(f"  ROC-AUC: {np.mean(scores):.4f} (+/- {np.std(scores):.4f})")
-
-            # Select best model
-            best_model_name = max(results, key=lambda x: results[x]['mean_score'])
-            print(f"\nBest model: {best_model_name}")
-            return results, best_model_name
-
 
     def _tune_hyperparameters(self, x_train, y_train, model_name='LR'):
         """Tune hyperparameters using GridSearchCV"""
@@ -70,7 +42,7 @@ class ModelTraining:
 
         if model_name == 'RF':
             param_grid = {
-                'n_estimators': [50, 100, 200],
+                'n_estimators': [50, 200, 400],
                 'max_depth': [10, 20, None],
                 'min_samples_leaf': [1, 2]
             }
@@ -78,7 +50,7 @@ class ModelTraining:
 
         elif model_name == 'LGBM':
             param_grid = {
-                'n_estimators': [50, 100, 200],
+                'n_estimators': [50, 200, 400],
                 'learning_rate': [0.01, 0.1],
                 'min_split_gain': [1, 3, 5]
             }
@@ -90,7 +62,7 @@ class ModelTraining:
                 'penalty': ['l2'],
                 'solver': ['lbfgs']
             }
-            base_model = LogisticRegression(random_state=42, max_iter=1000)
+            base_model = LogisticRegression(random_state=42, max_iter=5000)
 
         inner_cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
         # Grid search
@@ -214,7 +186,3 @@ class ModelTraining:
         print(f"Prediction dataset shape: {predictions_df.shape}")
 
         return predictions_df
-
-    # Example usage
-    # prediction_dataset = stratified_kfold_training(data, target_column='churn', member_id_column='member_id', model_type='RF')
-    # print(prediction_dataset.head())
