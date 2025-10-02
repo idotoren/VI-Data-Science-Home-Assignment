@@ -2,6 +2,8 @@ import os
 import pandas as pd
 from datetime import datetime
 import numpy as np
+from gensim.models import Word2Vec
+
 
 class DataCollector:
     def __init__(self, data_folder):
@@ -77,10 +79,10 @@ class DataCollector:
 
         # Calculate the difference between last week and last month
         self.app_usage_features['change_week_month'] = (
-            self.app_usage_features['visits_last_week'] - self.app_usage_features['visits_last_month']
+            self.app_usage_features['visits_current_week'] - self.app_usage_features['visits_last_month']
         )
         self.app_usage_features['change_week_previous_week'] = (
-                self.app_usage_features['visits_last_week'] - self.app_usage_features['visits_previous_week']
+                self.app_usage_features['visits_current_week'] - self.app_usage_features['visits_previous_week']
         )
         self.app_usage_features['change_month_six_month'] = (
                 self.app_usage_features['visits_last_month'] - self.app_usage_features['visits_last_six_month']
@@ -159,6 +161,8 @@ class DataCollector:
         time_diff_features = grouped.apply(time_diff_stats).reset_index(name='avg_time_between_visits')
         self.web_visits_features = self.web_visits_features.merge(time_diff_features, on='member_id', how='left')
 
+        return data
+
 
     def _prepare_claims_features(self, claims_file, collapse_icd=True, icd_keep_list=None):
         """
@@ -204,8 +208,32 @@ class DataCollector:
         self.claims_features = features.merge(data[['member_id', 'num_diff_diagnoses']].drop_duplicates(), on='member_id', how='left')
 
 
-    def _prepare_cross_dataset_features(self, final_dataset):
-        pass
+    def _prepare_web_visit_sequence_embeddings(self, df_web, embed_size=32, min_count=2, window=5):
+
+        # Step 1: Sort and group by user
+        df_sorted = df_web.sort_values(by=['member_id', 'timestamp'])
+        web_sequences = df_sorted.groupby('member_id')['title'].apply(list)
+
+        # Step 2: Train Word2Vec model on all sequences
+        web_model = Word2Vec(sentences=web_sequences, vector_size=embed_size,
+                             window=window, min_count=min_count, workers=4, sg=1)
+
+        # Step 3: Summarize embeddings per user
+        user_vectors = {}
+        for user_id, tokens in web_sequences.items():
+            vectors = [web_model.wv[token] for token in tokens if token in web_model.wv]
+            if len(vectors) == 0:
+                vec = np.zeros(embed_size)
+            else:
+                vec = np.mean(vectors, axis=0)
+            user_vectors[user_id] = vec
+        web_features = pd.DataFrame.from_dict(user_vectors, orient='index')
+        web_features.columns = [f"web_embed_{i}" for i in range(embed_size)]
+        web_features.index.name = 'member_id'
+
+        # Step 4: Merge features
+        self.user_web_emb_features = web_features.fillna(0)
+
 
     def run(self):
         """
@@ -228,7 +256,7 @@ class DataCollector:
         self._prepare_app_usgae_features(app_usage_file)
 
         print("Preparing web visit features...")
-        self._prepare_web_visit_features(web_visits_file)
+        web_data = self._prepare_web_visit_features(web_visits_file)
 
         print("Preparing claims features...")
         self._prepare_claims_features(claims_file)
@@ -236,13 +264,15 @@ class DataCollector:
         print("Preparing churn label features...")
         self._prepare_churn_label_features(churn_file)
 
+        print("Preparing web visits sequence embeddings features...")
+        self._prepare_web_visit_sequence_embeddings(web_data)
+
         # Merge all DataFrames on member_id
         print("Merging all features into one dataset...")
         final_dataset = self.app_usage_features.merge(self.web_visits_features, on='member_id', how='outer')
         final_dataset = final_dataset.merge(self.claims_features, on='member_id', how='outer')
         final_dataset = final_dataset.merge(self.churn_labels, on='member_id', how='outer')
-
-        self._prepare_cross_dataset_features(final_dataset)
+        final_dataset = final_dataset.merge(self.user_web_emb_features, on='member_id', how='outer')
 
         # Validate uniqueness of member_id
         if final_dataset['member_id'].duplicated().any():
@@ -264,77 +294,3 @@ class DataCollector:
 # data_folder = '../Data'  # Adjust the path to your data folder
 # data_collector = DataCollector(data_folder)
 # final_dataset = data_collector.run(data_folder)
-
-# import pandas as pd
-# import numpy as np
-# from gensim.models import Word2Vec
-# from sklearn.preprocessing import StandardScaler
-#
-#
-# def learn_behavior_embeddings(df_web, df_app,
-#                               url_col='url',
-#                               session_col='session_id',
-#                               user_col='user_id',
-#                               time_col='timestamp',
-#                               embed_size=32,
-#                               min_count=2,
-#                               window=5):
-#     """
-#     Learn and summarize behavior embeddings from web and app sequences for each user.
-#
-#     Parameters:
-#         df_web (DataFrame): Web events with columns [user_id, timestamp, url]
-#         df_app (DataFrame): App sessions with columns [user_id, timestamp, session_id]
-#         embed_size (int): Size of embedding vectors
-#         min_count (int): Min frequency for Word2Vec vocabulary
-#         window (int): Word2Vec context window
-#
-#     Returns:
-#         user_features_df (DataFrame): One row per user with embedding-based features
-#     """
-#
-#     # Step 1: Sort and group by user for both sources
-#     def prepare_sequences(df, token_col):
-#         df_sorted = df.sort_values(by=[user_col, time_col])
-#         user_sequences = df_sorted.groupby(user_col)[token_col].apply(list)
-#         return user_sequences
-#
-#     web_sequences = prepare_sequences(df_web, url_col)
-#     app_sequences = prepare_sequences(df_app, session_col)
-#
-#     # Step 2: Train Word2Vec models on all sequences
-#     web_model = Word2Vec(sentences=web_sequences, vector_size=embed_size,
-#                          window=window, min_count=min_count, workers=4, sg=1)
-#
-#     app_model = Word2Vec(sentences=app_sequences, vector_size=embed_size,
-#                          window=window, min_count=min_count, workers=4, sg=1)
-#
-#     # Step 3: Summarize embeddings per user
-#     def summarize_user_embeddings(sequences, model, prefix):
-#         user_vectors = {}
-#         for user_id, tokens in sequences.items():
-#             vectors = [model.wv[token] for token in tokens if token in model.wv]
-#             if len(vectors) == 0:
-#                 vec = np.zeros(embed_size)
-#             else:
-#                 vec = np.mean(vectors, axis=0)
-#             user_vectors[user_id] = vec
-#         user_df = pd.DataFrame.from_dict(user_vectors, orient='index')
-#         user_df.columns = [f"{prefix}_embed_{i}" for i in range(embed_size)]
-#         user_df.index.name = user_col
-#         return user_df
-#
-#     web_features = summarize_user_embeddings(web_sequences, web_model, 'web')
-#     app_features = summarize_user_embeddings(app_sequences, app_model, 'app')
-#
-#     # Step 4: Merge features
-#     user_features_df = web_features.join(app_features, how='outer').fillna(0)
-#
-#     # Optional: scale features
-#     user_features_df = pd.DataFrame(
-#         StandardScaler().fit_transform(user_features_df),
-#         columns=user_features_df.columns,
-#         index=user_features_df.index
-#     )
-#
-#     return user_features_df.reset_index()
