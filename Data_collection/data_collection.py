@@ -178,6 +178,9 @@ class DataCollector:
         self.claims_features = features.merge(data[['member_id', 'num_diff_diagnoses']].drop_duplicates(), on='member_id', how='left')
 
 
+    def _prepare_cross_dataset_features(self, final_dataset):
+        pass
+
     def run(self, data_folder):
         """
         Executes all feature preparation functions, merges the results, validates uniqueness, and prints a summary.
@@ -213,6 +216,8 @@ class DataCollector:
         final_dataset = final_dataset.merge(self.claims_features, on='member_id', how='outer')
         final_dataset = final_dataset.merge(self.churn_labels, on='member_id', how='outer')
 
+        self._prepare_cross_dataset_features(final_dataset)
+
         # Validate uniqueness of member_id
         if final_dataset['member_id'].duplicated().any():
             raise ValueError("Duplicate member_id rows found in the final dataset!")
@@ -225,6 +230,9 @@ class DataCollector:
         print(final_dataset.head())
 
         return final_dataset
+
+
+
 
 # Example usage
 data_folder = '../Data'  # Adjust the path to your data folder
