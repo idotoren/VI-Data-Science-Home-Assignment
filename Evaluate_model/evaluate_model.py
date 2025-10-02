@@ -194,7 +194,7 @@ class ModelEvaluation:
         sorted_df['rank'] = sorted_df.index + 1
 
         # Calculate N based on the threshold
-        N = np.searchsorted(sorted_df['score'].values, threshold_for_outreach, side='right')
+        N = np.searchsorted(sorted_df['score'].values[::-1], threshold_for_outreach, side='right')
         print(f"Number of recommendations to reach the threshold ({threshold_for_outreach:.4f}): {N}")
 
         # Select the top N rows
