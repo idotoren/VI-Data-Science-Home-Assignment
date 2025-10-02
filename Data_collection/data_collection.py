@@ -85,7 +85,8 @@ class DataCollector:
         # Calculate time from current time to last visit
         current_time = datetime.now()
         self.churn_labels['days_from_signup'] = (current_time - self.churn_labels['signup_date']).dt.days
-
+        # Drop the signup_date column
+        self.churn_labels.drop(columns=['signup_date'], inplace=True)
 
     def _prepare_web_visit_features(self, web_visits_file):
         """
